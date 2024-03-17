@@ -100,7 +100,7 @@ const App = () => {
 
   return (
     <div>
-      <h2>Phonebook (Part 11)</h2>
+      <h2>Phonebook (Part 11 vFINAL)</h2>
       <Notification newMessage={newMessage}/>
       <Filter value={newFilter} onChange={handleFilterChange}/>
       <h2>add a new</h2>

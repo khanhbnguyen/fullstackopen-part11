@@ -6,34 +6,10 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize]
-jobs:
-  # frontend:
-  #   name: Build frontend
-  #   runs-on: ubuntu-20.04
-  #   concurrency: deploy-group    # optional: ensure only one action runs at a time
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: superfly/flyctl-actions/setup-flyctl@master
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20'
-  #     - name: check if dist exists 
-  #       run: ls -ltr
-  #     - name: Remove dist, build frontend, copy new dist 
-  #       run: npm run build:frontend
-  #     - name: check if dist exists 
-  #       run: ls -ltr
-  #     - name: Build Failure
-  #       uses: rjstone/discord-webhook-notify@v1
-  #       if: failure()
-  #       with:
-  #         severity: error
-  #         text: Frontend build failed
-  #         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
-  backend:
-    name: Build and deploy backend
-    # needs: [frontend]
+jobs:
+  build_and_deploy:
+    name: Build and deploy
     runs-on: ubuntu-20.04
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
@@ -71,7 +47,7 @@ jobs:
           
   tag_release:
     name: Update version
-    needs: [backend]
+    needs: [build_and_deploy]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
