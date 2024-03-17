@@ -1,0 +1,95 @@
+name: Build and Deploy Phonebook App
+on:
+  push:
+    branches:
+      - main    # change to main if needed
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+jobs:
+  frontend:
+    name: Build frontend
+    runs-on: ubuntu-20.04
+    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Delete previous dist
+        run: rm -rf dist
+      - name: Go to frontend directory
+        run: cd frontend
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Build Failure
+        uses: rjstone/discord-webhook-notify@v1
+        if: failure()
+        with:
+          severity: error
+          text: Frontend build failed
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+  backend:
+    name: Build and deploy backend
+    needs: [frontend]
+    runs-on: ubuntu-20.04
+    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Build Failure
+        uses: rjstone/discord-webhook-notify@v1
+        if: failure()
+        with:
+          severity: error
+          text: Backend build failed
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Deploy on fly.io
+        if: ${{ github.event_name == 'push' && contains(join(toJson(github.event.commits.*.message)), '#skip') == false }}
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Deploy Success
+        uses: rjstone/discord-webhook-notify@v1
+        if: ${{ github.event_name == 'push' && success() }}
+        with:
+          severity: info
+          text: A new version of Pokedex deployed
+          details: to https://khanh-phonebook.fly.dev
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          
+  tag_release:
+    name: Update version
+    needs: [backend]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: github context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: commits
+        env:
+          COMMITS: ${{ toJson(github.event.commits) }}
+        run: echo "$COMMITS"
+      - name: commit messages
+        env:
+          COMMIT_MESSAGES: ${{ toJson(github.event.commits.*.message) }}
+        run: echo "$COMMIT_MESSAGES"
+      - name: Bump version and push tag
+        if: ${{ github.event_name == 'push' && contains(join(toJson(github.event.commits.*.message)), '#skip') == false }}
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
