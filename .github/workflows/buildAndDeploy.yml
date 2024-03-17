@@ -7,8 +7,33 @@ on:
     branches: [main]
     types: [opened, synchronize]
 jobs:
-  frontend:
-    name: Build frontend
+  # frontend:
+  #   name: Build frontend
+  #   runs-on: ubuntu-20.04
+  #   concurrency: deploy-group    # optional: ensure only one action runs at a time
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: superfly/flyctl-actions/setup-flyctl@master
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #     - name: check if dist exists 
+  #       run: ls -ltr
+  #     - name: Remove dist, build frontend, copy new dist 
+  #       run: npm run build:frontend
+  #     - name: check if dist exists 
+  #       run: ls -ltr
+  #     - name: Build Failure
+  #       uses: rjstone/discord-webhook-notify@v1
+  #       if: failure()
+  #       with:
+  #         severity: error
+  #         text: Frontend build failed
+  #         webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+
+  backend:
+    name: Build and deploy backend
+    # needs: [frontend]
     runs-on: ubuntu-20.04
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
@@ -17,12 +42,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: check if dist exists 
-        run: ls -ltr
+      - name: install frontend dependencies
+        run: cd frontend && npm install
       - name: Remove dist, build frontend, copy new dist 
-        run: npm run build:frontend
-      - name: check if dist exists 
-        run: ls -ltr
+        run: cd .. && npm run build:frontend
       - name: Build Failure
         uses: rjstone/discord-webhook-notify@v1
         if: failure()
@@ -30,22 +53,10 @@ jobs:
           severity: error
           text: Frontend build failed
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-
-  backend:
-    name: Build and deploy backend
-    needs: [frontend]
-    runs-on: ubuntu-20.04
-    concurrency: deploy-group    # optional: ensure only one action runs at a time
-    steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        run: npm install
       - name: check if dist exists 
         run: ls -ltr
+      - name: Install backend dependencies
+        run: npm install
       - name: Deploy on fly.io
         if: ${{ github.event_name == 'push' && contains(join(toJson(github.event.commits.*.message)), '#skip') == false }}
         run: flyctl deploy --remote-only
