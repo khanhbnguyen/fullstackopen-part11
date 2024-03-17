@@ -18,13 +18,15 @@ jobs:
         with:
           node-version: '20'
       - name: Delete previous dist
-        run: rm -rf dist
-      - name: Go to frontend directory
-        run: cd frontend
-      - name: Install dependencies
-        run: npm install
-      - name: Build
-        run: npm run build
+        run: npm run build:frontend
+      # - name: Delete previous dist
+      #   run: rm -rf dist
+      # - name: Go to frontend directory
+      #   run: cd frontend
+      # - name: Install dependencies
+      #   run: npm install
+      # - name: Build
+      #   run: npm run build
       - name: Build Failure
         uses: rjstone/discord-webhook-notify@v1
         if: failure()
@@ -46,15 +48,15 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
-      - name: Build
-        run: npm run build
-      - name: Build Failure
-        uses: rjstone/discord-webhook-notify@v1
-        if: failure()
-        with:
-          severity: error
-          text: Backend build failed
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+      # - name: Build
+      #   run: npm run build
+      # - name: Build Failure
+      #   uses: rjstone/discord-webhook-notify@v1
+      #   if: failure()
+      #   with:
+      #     severity: error
+      #     text: Backend build failed
+      #     webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Deploy on fly.io
         if: ${{ github.event_name == 'push' && contains(join(toJson(github.event.commits.*.message)), '#skip') == false }}
         run: flyctl deploy --remote-only
