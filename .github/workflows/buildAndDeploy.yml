@@ -17,8 +17,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: check if dist exists 
+        run: ls -ltr
       - name: Remove dist, build frontend, copy new dist 
         run: npm run build:frontend
+      - name: check if dist exists 
+        run: ls -ltr
       - name: Build Failure
         uses: rjstone/discord-webhook-notify@v1
         if: failure()
@@ -40,6 +44,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: check if dist exists 
+        run: ls -ltr
       - name: Deploy on fly.io
         if: ${{ github.event_name == 'push' && contains(join(toJson(github.event.commits.*.message)), '#skip') == false }}
         run: flyctl deploy --remote-only
